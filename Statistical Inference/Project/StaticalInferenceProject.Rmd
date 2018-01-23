@@ -1,0 +1,94 @@
+---
+title: "Exponential Distribution and CLT"
+author: "Yadder Aceituno"
+date: "January 23, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+This project will show a comparission between the Exponential Distribution and CLT (Central Limit Theorem). I will calculate and compare the mean, the variance, and I will show how the distribution looks approximately normal.
+
+## Simulations
+First, I need to create 1000 simulations of the mean from 40 exponential values using lambda = 0.2.
+I will use the rexp function to get those values. Over that function I will use the replicate function to get the 1000 simulations.
+
+```{r simulations1}
+# Seed for reproducibility
+SEED <- 1505;
+set.seed(SEED);
+
+# Lambda value
+lambda <- 0.2;
+# Number of values  
+n <- 40;
+# Number of simulations
+sim <- 1000;
+
+# Creating the simulated values
+simulated_values <- replicate(sim, mean(rexp(n, lambda)));
+
+# Looking the firsts values in the vector
+head(simulated_values);
+```
+
+## Sample Mean vs Theorical Mean
+We know that we can calculate the theorical mean with this equation: $E(x) = 1/\lambda = \beta$
+
+```{r sample_mean1}
+# Calculating theorical mean.
+theorical_mean <- 1 / lambda;
+
+# Looking the value
+theorical_mean;
+```
+
+Now, I will calculate the mean from my 1000 simulations.
+
+```{r sample_mean2}
+# Calculating simulations' mean
+simulation_mean <- mean(simulated_values);
+
+# Looking the value
+simulation_mean;
+```
+
+We can check that both are approximately similar, the theorical mean is equal 5, and the simulations' mean is equal 5.01.
+
+## Sample Variance vs Theorical Variance
+We know that we can calculate the theorical standard deviation with this equation: $\sigma_x = \sigma / \sqrt n$
+We also know that $\sigma = \beta$ for exponential distribution. So, we can calculate standard deviation with $\sigma_x = (1/\lambda) / \sqrt n$
+
+```{r sample_variance1}
+# Calculating theorical standard deviation.
+theorical_standard_deviation <- (1 / lambda) / sqrt(n);
+
+# Looking the value
+theorical_standard_deviation;
+```
+
+Now, I will calculate the standard deviation from my 1000 simulations.
+
+```{r sample_variance2}
+# Calculating simulations' standard deviation
+simulation_standard_deviation <- sd(simulated_values);
+
+# Looking the value
+simulation_standard_deviation;
+```
+
+With those values, we can calculate both variances.
+
+```{r sample_variance3}
+# Calculating  theorical variance
+theorical_variance <- theorical_standard_deviation ^ 2;
+theorical_variance;
+
+# Calculating  simulations' variance
+simulation_variance <- simulation_standard_deviation ^ 2;
+simulation_variance;
+```
