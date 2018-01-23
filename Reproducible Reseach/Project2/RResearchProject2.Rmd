@@ -1,0 +1,209 @@
+---
+title: "Harmful events and their economic consequences in US "
+author: "Yadder Aceituno"
+date: "December 10, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Synopsis
+In US, storms, floods, hurricanes and a lot of different weather events cause damage to the country. This damage could be harmful to the poplutation or could bring economic consequences. This study will be over the NOAA's database. it include records about different events in US since 1950. The main purpose for this study is to discover which events are the most harmful to people, and which are the event with bigger economic consquences.
+
+
+## Loading libraries
+
+First, I want to show you the libraries that I had used to complete my assignment.
+```{r libraries, warning=FALSE, message=FALSE}
+library(ggplot2);
+library(dplyr);
+```
+
+## Data Loading
+The data used for this analysis is provided by the teachers of the course in this [link(47Mb)](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2).
+
+The documentation of National Weather Service is in this [link](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf).
+
+So, I have downloaded and unzipped the file and I renamed it as StormData.csv
+
+```{r constants}
+#Definning constants
+STORM_DATA_FILE_NAME <- "StormData.csv";
+EVENT_HEADER <- "Event";
+VALUE_HEADER <- "Value";
+DAMAGE_HEADER <- "Damage";
+FATALITY_TYPE <- "Fatality";
+INJURY_TYPE <- "Injury";
+CROP_DAMAGE_TYPE <- "Crop Damage";
+PROPERTY_DAMAGE_TYPE <- "Property Damage";
+```
+
+```{r load, cache = TRUE}
+#Loading data
+storm_data <- read.csv(STORM_DATA_FILE_NAME);
+```
+
+Now, I'll format some variables of the data frame
+```{r formatting, cache = TRUE, warning = FALSE}
+#Casting date variables.
+storm_data$BGN_DATE <- as.Date(storm_data$BGN_DATE, format = "%m/%d/%Y");
+storm_data$END_DATE <- as.Date(storm_data$END_DATE, format = "%m/%d/%Y");
+
+#Transforming exponent values
+transform_exp <- function(element){
+  if(length(element) > 0){
+    if(!is.na(as.numeric(element)))
+    {
+      #All numeric 1..8 is 10
+      10
+    }else{
+      #We have to find the correct value for the character
+      switch(element, 
+             "K" = 10 ^ 3, 
+             "k" = 10 ^ 3, 
+             "H" = 10 ^ 2, 
+             "h" = 10 ^ 2, 
+             "M" =  10 ^ 6, 
+             "m" =  10 ^ 6, 
+             "B" = 10 ^ 9,
+             "b" = 10 ^ 9,
+             "+" = 1,
+             "-" = 0,
+             "?" = 0,
+             0);
+    }
+  }else{
+    #No characters, the value is zero
+    0;
+  }
+};
+
+#Getting the exponent value
+storm_data$PROPDMGEXP_VALUE <- Vectorize(transform_exp)(as.character(storm_data$PROPDMGEXP));
+storm_data$CROPDMGEXP_VALUE <- Vectorize(transform_exp)(as.character(storm_data$CROPDMGEXP));
+
+```
+
+
+## Data Processing
+In this section I'll try to find the most harmful events related to population health.
+
+To achieve that, I'll use the variables **FATALITIES** and **INJURIES**. With those variables I'll try to plot the top 5 events with the most bigger quantities.
+
+First, I'll extract the information of the variables and then get the top 5 from each variable.
+
+```{r fatalities_injuries}
+#Aggregation of fatalities and injuries by event
+fatalities_by_events <- aggregate(FATALITIES ~ EVTYPE, data = storm_data, sum);
+injuries_by_events <- aggregate(INJURIES ~ EVTYPE, data = storm_data, sum);
+
+#Getting top 5 of fatalities
+fatalities_by_events <- arrange(fatalities_by_events, desc(FATALITIES));
+top5_fatalities_by_events <- fatalities_by_events[1:5,];
+
+#Getting top 5 of injuries
+injuries_by_events <- arrange(injuries_by_events, desc(INJURIES));
+top5_injuries_by_events <- injuries_by_events[1:5,];
+```
+
+Let's look a plot with the information.
+```{r harmful_plotting}
+#Changing column names
+colnames(top5_fatalities_by_events)[1] <- EVENT_HEADER;
+colnames(top5_injuries_by_events)[1] <- EVENT_HEADER;
+colnames(top5_fatalities_by_events)[2] <- VALUE_HEADER;
+colnames(top5_injuries_by_events)[2] <- VALUE_HEADER;
+
+#Creating the dataframe to use for plotting
+top5_fatalities_by_events$Type <- FATALITY_TYPE;
+top5_injuries_by_events$Type <- INJURY_TYPE;
+top5_harmful_events <- rbind(top5_fatalities_by_events, top5_injuries_by_events);
+
+#Creating the plotting
+g <- ggplot(top5_harmful_events, aes(x = factor(Event),y = Value, fill = Event));
+gg <- g + geom_bar(stat="identity") +   
+  facet_grid(Type~., scales = "free_y") +
+  labs(y="Value", title="Top 5 Harmful Events") +
+  theme(axis.text.x =  element_blank(), axis.title.x = element_blank());
+gg;
+
+```
+
+Looking the plotting, I can conclude that the most harmful event for population is Tornado.
+Tornados have caused almost 6000 fatalities and 10000 injuries most than double rather than the next one, the excessive heat.
+
+## Great Economic Consequences
+In this section I'll try to figure out which is the event with great economic consequences in the country.
+
+To achieve that, I'll use the variables **PROPDMGEXP_VALUE** and **CROPDMGEXP_VALUE**.  With those variables I'll try to plot the top 5 events with the most bigger quantities.
+
+First, I'll extract the information of the variables and then get the top 5 from each variable.
+
+```{r economic_consequences}
+storm_data$CROPDMG_VALUE <- storm_data$CROPDMG * storm_data$CROPDMGEXP_VALUE;
+storm_data$PROPDMG_vALUE <- storm_data$PROPDMG * storm_data$PROPDMGEXP_VALUE;
+
+#Aggregation of fatalities and injuries by event
+cropdmg_by_events <- aggregate(CROPDMG_VALUE ~ EVTYPE, data = storm_data, sum);
+propdmg_by_events <- aggregate(PROPDMG_vALUE ~ EVTYPE, data = storm_data, sum);
+
+#Getting top 5 of crop damage
+cropdmg_by_events <- arrange(cropdmg_by_events, desc(CROPDMG_VALUE));
+top5_cropdmg_by_events <- cropdmg_by_events[1:5,];
+
+#Getting top 5 of property damage
+propdmg_by_events <- arrange(propdmg_by_events, desc(PROPDMG_vALUE));
+top5_propdmg_by_events <- propdmg_by_events[1:5,];
+```
+
+Now, I'll plot the information.
+
+```{r economic_plotting}
+#Changing column names
+colnames(top5_cropdmg_by_events)[1] <- EVENT_HEADER;
+colnames(top5_propdmg_by_events)[1] <- EVENT_HEADER;
+colnames(top5_cropdmg_by_events)[2] <- DAMAGE_HEADER;
+colnames(top5_propdmg_by_events)[2] <- DAMAGE_HEADER;
+
+#Creating the dataframe to use for plotting
+top5_cropdmg_by_events$Type <- CROP_DAMAGE_TYPE;
+top5_propdmg_by_events$Type <- PROPERTY_DAMAGE_TYPE;
+top5_economic_events <- rbind(top5_cropdmg_by_events, top5_propdmg_by_events);
+
+#To remove scientific notation
+options(scipen=999);
+
+#Creating the plotting
+g <- ggplot(top5_economic_events, aes(x = factor(Event),y = Damage / (10 ^ 9), fill = Event));
+gg <- g + geom_bar(stat="identity") +   
+  facet_grid(Type~., scales = "free_y") +
+  labs(y="Damage (GDollars)", title="Top 5 Economic Harmful Damage") +
+  theme(axis.text.x =  element_blank(), axis.title.x = element_blank());
+gg;
+
+```
+
+With that plot I conclude that the most economic harmful event is flood. Flood caused almost 150 GDollars of damage in property.
+
+But, It's important to consider that droughts could cause a great damage, drought caused almost 15 GDollars of damage in crops. So, it could cause a rise of prices of products related to crops.
+
+## Results
+We can see the results of harmful damage for population in this table:
+```{r harmful_table}
+top5_harmful_events;
+```
+I can see in this table as well the first plot, that the most harmful event is Tornado.
+Tornados have caused 6000 fatalities and 10000 injuries.
+
+And for economic damage, we can see the final results here:
+```{r economic_table}
+arrange(top5_economic_events, desc(Damage));
+```
+With this information we can see that the event with great economic consequences is Flood.
+
+## Conclusion
+Watching the graphs and tables it is easy to discover that:
+
+* Tornados is the most harmful event to the population, this event had cause more injuries and fatalities to US.
+* Flood is the event with greater economic consquequences, this had caused damage valued in 150 Trillon of Dollars just in property.
