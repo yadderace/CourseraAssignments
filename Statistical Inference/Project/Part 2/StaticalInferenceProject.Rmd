@@ -1,0 +1,55 @@
+---
+title: "Tooth Growth Analysis"
+author: "Yadder Aceituno"
+date: "January 24, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2);
+```
+
+## Loading Data and Summary
+
+For this analysis I will use the "Tooth Growth" data. Let's load it and view a summary of the data.
+
+
+```{r loading1}
+data("ToothGrowth");
+```
+
+Now, let's look a summary of the data.
+```{r loading2}
+summary(ToothGrowth);
+```
+
+Now, let's look around the firsts rows of the data.
+```{r loading3}
+head(ToothGrowth);
+```
+
+You can find more information about the data clicking on this [link](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html)
+
+## Comparing By Delivery Method
+
+I will create a plot about length by delivery method to easily explore the data.
+
+```{r delivery1}
+ToothGrowth$dose <- as.factor(ToothGrowth$dose);
+
+plot <- ggplot(aes(x=supp, y=len), data=ToothGrowth);
+
+plot <- plot + geom_boxplot(aes(fill=supp)) + 
+  xlab("Delivery Method") + 
+  ylab("Tooth Length") + 
+  ggtitle("Tooth Length by Delivery Method");
+
+plot
+```
+
+Now, I will use t.test to compare the data by supplement (delivery method).
+
+```{r delivery2}
+t.test(len~supp, data = ToothGrowth);
+```
