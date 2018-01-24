@@ -2,16 +2,22 @@
 title: "Exponential Distribution and CLT"
 author: "Yadder Aceituno"
 date: "January 23, 2018"
-output: pdf_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2);
 ```
 
 ## Overview
 
-This project will show a comparission between the Exponential Distribution and CLT (Central Limit Theorem). I will calculate and compare the mean, the variance, and I will show how the distribution looks approximately normal.
+This project will show a how the exponential distribution gets like as a normal distribution, to confirm the CLT (Central Limit Theorem). I will calculate and compare the mean, the variance, and I will show how the distribution looks approximately normal.
+
+Have in mind that CLT states that the sampling distribution of the mean of any independent, random variable will be normal or nearly normal, if the sample size is large enough.
 
 ## Simulations
 First, I need to create 1000 simulations of the mean from 40 exponential values using lambda = 0.2.
@@ -19,7 +25,7 @@ I will use the rexp function to get those values. Over that function I will use 
 
 ```{r simulations1}
 # Seed for reproducibility
-SEED <- 1505;
+SEED <- 0123;
 set.seed(SEED);
 
 # Lambda value
@@ -37,14 +43,14 @@ head(simulated_values);
 ```
 
 ## Sample Mean vs Theorical Mean
-We know that we can calculate the theorical mean with this equation: $E(x) = 1/\lambda = \beta$
+We know that we can calculate the theoric mean with this equation: $E(x) = 1/\lambda = \beta$
 
 ```{r sample_mean1}
-# Calculating theorical mean.
-theorical_mean <- 1 / lambda;
+# Calculating theoric mean.
+theoric_mean <- 1 / lambda;
 
 # Looking the value
-theorical_mean;
+theoric_mean;
 ```
 
 Now, I will calculate the mean from my 1000 simulations.
@@ -57,18 +63,18 @@ simulation_mean <- mean(simulated_values);
 simulation_mean;
 ```
 
-We can check that both are approximately similar, the theorical mean is equal 5, and the simulations' mean is equal 5.01.
+We can check that both are approximately similar, the theoric mean is equal 5, and the simulations' mean is equal 5.01.
 
 ## Sample Variance vs Theorical Variance
-We know that we can calculate the theorical standard deviation with this equation: $\sigma_x = \sigma / \sqrt n$
+We know that we can calculate the theoric standard deviation with this equation: $\sigma_x = \sigma / \sqrt n$
 We also know that $\sigma = \beta$ for exponential distribution. So, we can calculate standard deviation with $\sigma_x = (1/\lambda) / \sqrt n$
 
 ```{r sample_variance1}
-# Calculating theorical standard deviation.
-theorical_standard_deviation <- (1 / lambda) / sqrt(n);
+# Calculating theoric standard deviation.
+theoric_standard_deviation <- (1 / lambda) / sqrt(n);
 
 # Looking the value
-theorical_standard_deviation;
+theoric_standard_deviation;
 ```
 
 Now, I will calculate the standard deviation from my 1000 simulations.
@@ -84,11 +90,43 @@ simulation_standard_deviation;
 With those values, we can calculate both variances.
 
 ```{r sample_variance3}
-# Calculating  theorical variance
-theorical_variance <- theorical_standard_deviation ^ 2;
-theorical_variance;
+# Calculating  theoric variance
+theoric_variance <- theoric_standard_deviation ^ 2;
+theoric_variance;
 
 # Calculating  simulations' variance
 simulation_variance <- simulation_standard_deviation ^ 2;
 simulation_variance;
 ```
+
+Notice that both variables (standard deviation and variance) are approximately equal. With those results we can draw the distribution and compare it with a normal distribution.
+
+
+## Distribution
+
+Lets compare the distribution of the simulated means and the normal distribution.
+
+```{r distribution1}
+# Creating the exponential density histogram.
+plot <- ggplot(data = data.frame(means = simulated_values), aes(x = means));
+plot <- plot + 
+  geom_histogram(aes(y = ..density..),
+                 color = "skyblue4", 
+                 fill = "skyblue1", 
+                 bins = n,
+                 alpha = 0.2) +
+  labs(title="Exponential Distribution vs Normal (Density)");
+
+# Creating the normal line density distribution.
+plot <- plot + 
+  stat_function(aes(colour = "Normal"),
+                fun = dnorm, 
+                args = list(mean = theoric_mean, sd = theoric_standard_deviation)) + 
+  scale_colour_manual("",values = c("black"));
+# Plotting
+plot;
+```
+
+## Conclusion
+Using random exponential sample of values and a long enough size of data, the sample gets more like a normal distribution.
+This confirm the central limit theorem.
