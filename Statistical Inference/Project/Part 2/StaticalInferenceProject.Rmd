@@ -10,6 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2);
 ```
 
+## Overview
+In this analysis we will use the "Toot Growth" data, this data set registers the effect of vitamin C on pigs' tooth growth. Over this data we will discover some relations on the data's attributes. To confirm that relations we will use plots and t tests to get some information.   
+
 ## Loading Data and Summary
 
 For this analysis I will use the "Tooth Growth" data. Let's load it and view a summary of the data.
@@ -38,18 +41,67 @@ I will create a plot about length by delivery method to easily explore the data.
 ```{r delivery1}
 ToothGrowth$dose <- as.factor(ToothGrowth$dose);
 
-plot <- ggplot(aes(x=supp, y=len), data=ToothGrowth);
-
+plot <- ggplot(aes(x=supp, y=len), data = ToothGrowth);
 plot <- plot + geom_boxplot(aes(fill=supp)) + 
-  xlab("Delivery Method") + 
+  xlab("Supplement Type") + 
   ylab("Tooth Length") + 
-  ggtitle("Tooth Length by Delivery Method");
-
-plot
+  ggtitle("Tooth Length by Supplement Type") +
+  # Removes the legends
+  theme(legend.position="none") +
+  # Labeling supplement type
+  scale_x_discrete(labels=c("Orange Juice (OJ)","Ascorbic Acid (VC)"));
+plot;
 ```
 
-Now, I will use t.test to compare the data by supplement (delivery method).
+With that plot I can see that both samples looks like they are almost the same. So it could be possible that the supplement type (delivery method) doesn't have relation with tooth length .
+Now, in order to discover that assumption, I will use t test to compare the data by supplement(delivery method).
 
 ```{r delivery2}
 t.test(len~supp, data = ToothGrowth);
 ```
+
+Notice that the p-value (0.06) is greater than 0.05. So we can state that there isn't difference between both data sets (Orange Juice delivery and Ascorbic Acid) related to tooth growth.
+
+## Comparing By Doses
+
+First, let's look how many doses we have in our data set.
+```{r doses1}
+unique(ToothGrowth$dose);
+```
+
+Now, I already know that we have 3 different doses I will plot a boxplot by doses.
+```{r doses2}
+plot <- ggplot(aes(x=dose, y=len), data = ToothGrowth);
+plot <- plot + geom_boxplot(aes(fill=dose)) + 
+  xlab("Doses mg/day") + 
+  ylab("Tooth Length") + 
+  ggtitle("Tooth Length by Doses") +
+  # Removes the legends
+  theme(legend.position="none");
+plot;
+```
+
+In the graphic we can see that there are differences between the datasets. So, let's do the t test over the two firsts doses (0.5 and 1.0).
+```{r doses3}
+t.test(len~dose, data = subset(ToothGrowth, ToothGrowth$dose %in% c(0.5,1.0)));
+```
+The p-value in this test is  almost 0, that value tell us that those data set (0.5 and 1.0) are different.
+
+Let's look the another ones, in this case applying the t test over the doses 1.0 and 2.0.
+```{r doses4}
+t.test(len~dose, data = subset(ToothGrowth, ToothGrowth$dose %in% c(1.0,2.0)));
+```
+Again as we saw in the last test, the p-value is almost 0. This test also show that both data sets are different.
+
+Now, let's test the last data sets, we can deduce that we will have the same result.
+```{r doses5}
+t.test(len~dose, data = subset(ToothGrowth, ToothGrowth$dose %in% c(0.5,2.0)));
+``` 
+As before, the p-value is almost 0. So, this test also indicates that both data sets are different.
+
+## Conclusion
+Analyzing, and comparing the ToothGrowth data sets we can conclude that:
+
+*   There are not relations between tooth length and the delivery method.
+*   Exist relations between the tooth growth and the dose given to the pigs.
+*   With the plot, we can discover that if we raise the amount of dose, the tooth growth will increase.
