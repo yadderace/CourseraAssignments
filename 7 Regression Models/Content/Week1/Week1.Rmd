@@ -1,0 +1,114 @@
+---
+title: "Regression Models Content"
+author: "Yadder Aceituno"
+date: "March 19, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Week 1
+
+## Libraries
+
+```{r libraries, warning=FALSE, message=FALSE}
+library(UsingR)
+library(ggplot2)
+library(manipulate)
+```
+
+## Load Data
+
+```{r load}
+data(galton)
+```
+
+## Example 1
+
+```{r example1}
+
+## Without manipulate function
+freqData <- as.data.frame(table(galton$child, galton$parent));
+names(freqData) <- c("child", "parent", "freq");
+plot(as.numeric(as.vector(freqData$parent)), 
+      as.numeric(as.vector(freqData$child)), 
+     pch = 21, col = "black", bg = "lightblue", 
+     cex = .15 * freqData$freq, 
+     xlab = "parent", ylab = "child");
+
+
+## With manipulate function
+myPlot <- function(beta){
+  y <- galton$child - mean(galton$child)
+  x <- galton$parent - mean(galton$parent)
+  freqData <- as.data.frame(table(x, y))
+  names(freqData) <- c("child", "parent", "freq")
+  plot(
+    as.numeric(as.vector(freqData$parent)), 
+    as.numeric(as.vector(freqData$child)),
+    pch = 21, col = "black", bg = "lightblue",
+    cex = .15 * freqData$freq, 
+    xlab = "parent", 
+    ylab = "child")
+  abline(0, beta, lwd = 3)
+  points(0, 0, cex = 2, pch = 19)
+  mse <- mean( (y - beta * x)^2 )
+  title(paste("beta = ", beta, "mse = ", round(mse, 3)))
+}
+
+##Evaluation
+##manipulate(myPlot(beta), beta = slider(0.6, 1.2, step = 0.02))
+
+```
+
+## Equations
+
+### Variance
+$$
+s^2 =\frac{1}{(n-1)}\sum_{i=1}^n(x_i - \bar{x})^2 = \frac{1}{(n-1)} ( \sum_{i=1}^n x_i^2 - n\bar{x} ^2)
+$$
+
+### Standard Deviation
+$$
+s = \sqrt {s^2}
+$$
+
+### Normalizing Data
+$$
+z_i = \frac{x_i - \bar{x}}{s}
+$$
+
+### Covariance
+It's a measure of the joint variability of two random variables. If the greater values of one variable mainly correspond with the greater values of the other variable, and the same holds for the lesser values, i.e., the variables tend to show similar behavior, the covariance is positive. 
+In the opposite case, when the greater values of one variable mainly correspond to the lesser values of the other, i.e., the variables tend to show opposite behavior, the covariance is negative. 
+$$
+Cov(x,y) = \frac {1}{(n-1)} \sum_{i=1}^n (x_i-\bar{x})(y_i-\bar{y}) =  \frac {1}{(n-1)} (\sum_{i=1}^n x_iy_i - n\bar{x}\bar{y} )
+$$
+
+### Correlation 
+A correlation coefficient is a numerical measure of some type of correlation, meaning a statistical relationship between two variables. The variables may be two columns of a given data set of observations, often called a sample, or two components of a multivariate random variable with a known distribution.
+$$
+Cor(x,y) = \frac{Cov(x,y)}{s_x s_y} = Cor(y,x)
+$$
+It's imporant to take note about:
+$$
+-1 \leqslant Cor(x,y) \leqslant 1 
+$$
+If
+$$
+Cor(x,y) = 0 \implies \text{No linear relation}
+$$
+
+Using least square we want to minimize the next sum
+$$
+\sum_{i=1}^n[y_i - (\beta_0 + \beta_1x_i)]^2
+$$
+We need to find beta0 and beta1 with this equations:
+$$
+\beta_1 = Cor(y,x)\frac{s_y}{s_x}
+$$
+$$
+\beta_0 = \bar{y} - \beta_1 \bar{x}
+$$
