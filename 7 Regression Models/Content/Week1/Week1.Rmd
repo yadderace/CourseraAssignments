@@ -112,3 +112,85 @@ $$
 $$
 \beta_0 = \bar{y} - \beta_1 \bar{x}
 $$
+
+# Week 2
+
+## Interpreting Coeficients
+We have the probabilistic model for linear regression, including $\epsilon_i$ as our gaussian error.
+$$
+Y_i = \beta_0 + \beta_1 X_i + \epsilon_i
+$$
+
+Now, let's cosider this: 
+$$
+Y_i = \beta_0 + \beta_1 X_i + \epsilon_i = \beta_0 + a \beta_1 + \beta_1 (X_i - a) + \epsilon_i = \tilde{\beta_0} + \beta_1(X_1 - a) + \epsilon_i
+$$
+If we shift the regressor $(X_i - a)$, it doesn't change the slope $\beta_0$
+
+Also, let's consider the next one:
+$$
+Y_i =  \beta_0 + \beta_1X_i + \epsilon_i = \beta_0 + \frac{\beta_1}{a}(X_ia) + \epsilon_i = \beta_0 + \tilde{\beta_1}(X_ia) + \epsilon_i
+$$
+Mutiplying $X$ by a factor $a$ results in dividing the coefficient by a factor of $a$.
+
+## Example
+
+### Diamond data set
+Data is diamond prices (Singapore dollars) and diamond weight in carats (standard measure of diamond mass, 0.2 $g$)
+```{r load_diamond_data}
+library(UsingR);
+library(ggplot2);
+
+data(diamond);
+
+g <- ggplot(diamond, aes(x = carat, y = price));
+g <- g + xlab("Mass (carats)");
+g <- g + ylab("Price (SIN $)");
+g <- g + geom_point(size = 6, colour = "black", alpha = 0.2);
+g <- g + geom_point(size = 5, colour = "blue", alpha = 0.2);
+g <- g + geom_smooth(method = "lm", colour = "black");
+g;
+```
+
+### Fitting the linear regression model
+```{r}
+fit <- lm(price ~ carat, data = diamond);
+coef(fit);
+```
+
+***Our slope $\beta_1 = 3721.0249$ says, we estimate an expected  $3721.02$(SIN) dollar increase in price for every carat increase in mass of diamond.***
+
+***The intercept $\beta_0 = -259.63$ is the expected price of a 0 carat diamond. (Not interesting)***
+
+### Getting a more interpretable intercept
+```{r}
+fit2 <- lm(price ~ I(carat - mean(carat)), data = diamond);
+coef(fit2);
+```
+We see that the slope $\beta_1 = 3721.0249$ stay the same, but the Intercept $\beta_0 = 500.1$ is the expected price for the average sized diamond of the data.
+```{r}
+mean(diamond$carat);
+```
+
+Now, suppose we need to change the units of carats by a factor of 10, so we know that we have to divide the $\beta_1$ by 10. Let's check that:
+
+```{r}
+fit3 <- lm(price ~ I(carat * 10), data = diamond);
+coef(fit3);
+```
+
+We see that out $\beta_1 = 372.1025$ is equal to $3721.0249 / 10$.
+
+### Predicting the price of a diamond
+Imagine we have this three new caret diamonds
+```{r}
+newd <- c(0.16, 0.27, 0.34);
+```
+
+And we have 2 ways to predict the values:
+```{r}
+## Using the formula beta_0 + beta_1 * carat
+coef(fit)[1] + coef(fit)[2] * newd;
+
+## Using predict function
+predict(fit, newdata = data.frame(carat = newd));
