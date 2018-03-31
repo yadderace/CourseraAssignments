@@ -194,3 +194,85 @@ coef(fit)[1] + coef(fit)[2] * newd;
 
 ## Using predict function
 predict(fit, newdata = data.frame(carat = newd));
+```
+
+## Residuals
+Our observed outcome $i$ is $Y_i$ at a predictor value $X_i$
+
+The predicted outcome $i$ is $\hat{Y_i}$ at a predictor value $X_i$
+
+The model:
+$$
+\hat{Y_i}=\hat{\beta_0} + \hat{\beta_1}X_i
+$$
+
+We can define the residuals with
+$$
+e_i = Y_i-\hat{Y_i}
+$$
+
+Least Squares minimizes: $\sum_{i=1}^ne_i^2$
+
+### Example
+```{r}
+data(diamond);
+y <- diamond$price;
+x <- diamond$carat;
+n <- length(y);
+fit <- lm(y~x);
+
+## Getting the residuals (easy way)
+e<- resid(fit);
+
+yhat <- predict(fit);
+
+## Lets see the residuals
+e;
+
+## Lets see the predictions
+yhat;
+```
+
+Now lets plot the residuals
+```{r}
+plot(diamond$carat, diamond$price,
+     xlab = "Mass (carats)",
+     ylab = "Price (SIN $)",
+     bg = "lightblue",
+     col = "black", cex = 1.1, pch = 21, frame = FALSE);
+abline(fit, lwd = 2);
+for(i in 1: n)
+  lines(c(x[i],x[i]), c(y[i], yhat[i]), col = "red", lwd = 2);
+```
+
+Lets do another plot for residuals
+```{r}
+plot(x,e,
+     xlab="Mass (carats)",
+     ylab="Residuals (SIN $)",
+     bg = "lightblue",
+     col = "black", cex = 2, pch = 21, frame = FALSE);
+abline(h = 0, lwd = 2);
+for(i in 1: n)
+  lines(c(x[i], x[i]), c(e[i],0), col="red", lwd = 2);
+```
+
+### Heteroskedasticity
+```{r}
+x <- runif(100, 0, 6);
+y <- x + rnorm(100, mean = 0, sd = 0.001 * x);
+g <- ggplot(data.frame(x = x, y = y), aes(x = x, y = y));
+g <- g + geom_smooth(method = "lm", colour = "black");
+g <- g + geom_point(size = 7, colour= "black", alpha = 0.4);
+g <- g + geom_point(size = 5, colour = "red", alpha = 0.4);
+g;
+
+## Getting rid of the blank space can be helpful
+g <- ggplot(data.frame(x = x, y = resid(lm(y~x))), aes(x=x, y=y));
+g <- g + geom_hline(yintercept = 0, size = 2);
+g <- g + geom_point(size = 7, colour = "black", alpha = 0.4);
+g <- g + geom_point(size = 5, colour = "red", alpha = 0.4);
+g <- g + xlab("X") + ylab("Residual");
+g;
+
+```
