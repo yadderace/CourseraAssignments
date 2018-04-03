@@ -257,6 +257,58 @@ for(i in 1: n)
   lines(c(x[i], x[i]), c(e[i],0), col="red", lwd = 2);
 ```
 
+### Estimating Residual Variance
+We can estimate $\sigma^2$ is equal to $\frac{1}{n}\sum_{i=1}^ne_i^2$ the averaged sqared residual
+
+Most people use:
+$$
+\hat{\sigma}^2 = \frac{1}{n-2}\sum_{i=1}^ne_i^2
+$$
+
+The $n - 2$ instead of $n$ is so that $E[\hat{\sigma}^2] = \sigma^2$
+
+```{r}
+y <- diamond$price;
+x <- diamond$carat;
+n <- length(y);
+fit <- lm(y~x);
+
+## Checking the residual variation
+summary(fit)$sigma;
+
+## Calculating the residual variation
+sqrt(sum(resid(fit)^2)/(n-2));
+```
+
+### Diamond data residual plot
+```{r}
+e <- c(resid(lm(price~1, data = diamond)),
+       resid(lm(price~carat, data = diamond)));
+fit <- factor(c(rep("Itc", nrow(diamond)),
+                rep("Itc, slope", nrow(diamond))));
+g <- ggplot(data.frame(e = e, fit = fit), aes(y = e, x = fit, fill = fit));
+g <- g + geom_dotplot(binaxis = "y", stackdir = "center", binwidth = 20);
+g <- g + xlab("Fitting approach");
+g <- g + ylab("Residual Price");
+g;
+```
+
+### Total Variability
+The total variability in our response is the variability around an intercept $\sum_{i=1}^n(Y_i - \bar{Y})^2$
+The regression variability is the variability that is explained by adding the predictor $\sum_{i=1}^n(\hat{Y_i}-\bar{Y})^2$
+The error variability is what's leftover around the regression line $\sum_{i=1}^n(Y_i-\hat{Y_i})^2$
+
+We have a neat fact:
+$$
+\sum_{i=1}^n(Y_i - \bar{Y})^2 = \sum_{i=1}^n(Y_i - \hat{Y_i})^2 + \sum_{i=1}^n(\hat{Y_i}-\bar{Y_i})^2
+$$
+
+R squared is the pecentage of the total variability that is explained by the linear relationship with the predictor:
+
+$$
+R^2 = \frac{\sum_{i=1}^n(\hat{Y_i}-\bar{Y})^2}{\sum_{i=1}^n(Y_i - \bar{Y})^2}
+$$
+
 ### Heteroskedasticity
 ```{r}
 x <- runif(100, 0, 6);
@@ -275,4 +327,117 @@ g <- g + geom_point(size = 5, colour = "red", alpha = 0.4);
 g <- g + xlab("X") + ylab("Residual");
 g;
 
+```
+
+## Inference in regression
+### Review
+Lets consider the model:
+$$
+Y_i = \beta_0 + \beta_1X_i +\epsilon_i
+$$
+$$
+\hat{\beta_0} = \bar{Y} - \hat{\beta_1}\bar{X}
+$$
+$$
+\hat{\beta_1} = Cor(Y,X)\frac{Sd(Y)}{Sd(X)}
+$$
+
+Review from statistical inference, can be used to test: $H_0: \theta = \theta_0$ versus $H_a: \theta >, <, \neq \theta_0$
+
+Can be used to create a confidence interval for $\theta$ via $\hat{\theta} \pm Q_{1-\alpha/2}\hat{\sigma_{\hat{\theta}}}$ where $Q_{1-\alpha/2}$ is the relevant quantile from either a normal or T distribution.
+
+### Results
+
+Variance for the slope:
+$$
+\sigma_{\hat{\beta_1}}^2 = Var(\hat{\beta_1}) = \sigma^2 / \sum_{i=1}^n(X_i-\bar{X})^2
+$$
+The standard error for $\beta_1$:
+$$
+\sigma_{\hat{\beta_1}} = \sqrt{\sigma^2 / \sum_{i=1}^n(X_i-\bar{X})^2}
+$$
+
+Variance for the intercept:
+$$
+\sigma_{\hat{\beta_0}}^2 = Var(\hat{\beta_0}) = \bigg( \frac{1}{n} + \frac{\bar{X}^2}{\sum_{i=1}^n(X_i-\bar{X})^2}  \bigg) \sigma^2
+$$
+
+The standard error for $\beta_0$:
+$$
+\sigma_{\hat{\beta_0}} = \sqrt{\bigg( \frac{1}{n} + \frac{\bar{X}^2}{\sum_{i=1}^n(X_i-\bar{X})^2}  \bigg) \sigma^2}
+$$
+
+### Example
+```{r}
+library(UsingR);
+data(diamond);
+y <- diamond$price;
+x <- diamond$carat;
+n <- length(y);
+beta1 <- cor(y,x) * sd(y) / sd(x);
+beta0 <- mean(y) - beta1 * mean(x);
+e <- y - beta0 - beta1 * x;
+sigma <- sqrt(sum(e^2)/(n-2));
+ssx <- sum((x - mean(x))^2);
+seBeta0 <- ((1/n)+ mean(x)^2/ssx) ^ .5 * sigma;
+seBeta1 <- sigma / sqrt(ssx);
+
+## I assume that miu_beta0 and miu_beta1 is equal to 0
+tBeta0 <- beta0 / seBeta0;
+tBeta1 <- beta1 / seBeta1;
+
+pBeta0 <- 2 * pt(abs(tBeta0), df = n - 2, lower.tail = FALSE);
+pBeta1 <- 2 * pt(abs(tBeta1), df = n - 2, lower.tail = FALSE);
+
+coefTable <- rbind(
+  c(beta0, seBeta0, tBeta0, pBeta0),
+  c(beta1, seBeta1, tBeta1, pBeta1));
+
+colnames(coefTable) <- c("Estimate", "Std. Error", "t value", "P(>|t|)");
+rownames(coefTable) <- c("(Intercept)", "x");
+
+
+## Using lm function
+fit <- lm(y ~ x);
+
+## Comparing coefficients table
+coefTable
+summary(fit)$coefficients;
+```
+
+### Getting Confidence Interval
+```{r}
+coeffs <- summary(fit)$coefficients;
+intervalBeta0 <- coeffs[1,1] + c(1,-1) * qt(0.975, df = fit$df) * coeffs[1,2];
+intervalBeta1 <- coeffs[2,1] + c(1,-1) * qt(0.975, df = fit$df) * coeffs[2,2];
+
+intervalBeta0;
+intervalBeta1;
+```
+
+### Prediction of outcomes
+The obvious estimate for prediction at point $x_0$ is $\hat{\beta_0} + \hat{\beta_1}x_0$, but a standard error is needed to create a prediction interval.
+
+$x_0$ SE, $\hat{\sigma}\sqrt{\frac{1}{n} + \frac{(x_0 - \bar{X})^2}{\sum_{i=1}^n(X_i-\bar{X})^2}}$
+
+Prediction interval SE at $x_0$, $\hat{\sigma}\sqrt{1 + \frac{1}{n} + \frac{(x_0 - \bar{X})^2}{\sum_{i=1}^n(X_i-\bar{X})^2}}$
+
+### Example
+```{r}
+library(ggplot2);
+newx <- data.frame(x = seq(min(x), max(x), length = 100));
+p1 <- data.frame(predict(fit, newdata = newx, interval = ("confidence")));
+p2 <- data.frame(predict(fit, newdata = newx, interval = ("prediction")));
+p1$interval <- "confidence";
+p2$interval <- "prediction";
+p1$x <- newx$x;
+p2$x <- newx$x;
+dat <- rbind(p1, p2);
+names(dat)[1] <- "y";
+
+g <- ggplot(dat, aes(x = x, y = y));
+g <- g + geom_line();
+g <- g + geom_point(data = data.frame(x = x, y = y), aes(x =x, y = y), size = 4);
+g <- g + geom_ribbon(aes(ymin = lwr, ymax = upr, fill = interval), alpha = 0.2);
+g;
 ```
