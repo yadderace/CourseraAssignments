@@ -1,0 +1,224 @@
+---
+title: "Practical Machine Learning"
+author: "Yadder Aceituno"
+date: "August 19, 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+```{r libraries}
+
+library(caret)
+library(corrplot)
+library(rattle)
+
+```
+
+## Overview
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+The goal is to predict the manner they did the different excercises. There is a variable called classe which stores 5 different classes:
+
+* Class A - exactly according to the specification.
+* Class B - throwing the elbows to the front.
+* Class C - lifting the dumbbell only halfway.
+* Class D - lowering the dumbbell only halfway.
+* Class E - throwing the hips to the front.
+
+We'll build different prediction models to compare them and decide which model is the best to predict the variable classe.
+
+<style>
+  .col2 {
+    columns: 2 200px;         /* number of columns and width in pixels*/
+    -webkit-columns: 2 200px; /* chrome, safari */
+    -moz-columns: 2 200px;    /* firefox */
+  }
+  .col3 {
+    columns: 3 100px;
+    -webkit-columns: 3 100px;
+    -moz-columns: 3 100px;
+  }
+</style>
+
+<div class="col2">
+## Getting Data
+
+The data comes from 
+
+Getting the testing and training data
+
+
+```{r getting}
+
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+
+# Checking dimensions
+dim(training)
+dim(testing)
+
+```
+
+We can see that training data frame has 19622 rows. We will use this data frame to build our models. 
+We also can see that testing data frame has 20 rows. We will use this data frame to check each model builded.
+
+
+## Partition Data
+
+First, we need to create a partition for our training data. We will create a variable called myPartition which will hold 70% of the initial training data.
+Also we will create a variable called myTesting whicho will hold 30% of the initial training data.
+
+```{r partition}
+
+# Setting seed to reproduce the results
+set.seed(12345)
+
+inTrain <- createDataPartition(training$classe, p = 0.7, list = FALSE) 
+
+myTraining <- training[inTrain,]
+myTesting <- training[-inTrain,]
+
+
+# Checking dimensions
+dim(myTraining)
+dim(myTesting)
+
+```
+
+## Cleaning Training Data
+
+### Identifying Covariates
+
+First we need to take a first look to identify those variables which will help to build our model. Those are:
+
+```{r identifying}
+# Identifying covariates
+covariates <- c("classe", "roll_belt","pitch_belt", "yaw_belt", "total_accel_belt", "gyros_belt_x", "gyros_belt_y", "gyros_belt_z",
+"accel_belt_x", "accel_belt_y", "accel_belt_z", "magnet_belt_x", "magnet_belt_y", "magnet_belt_z", "roll_arm", "pitch_arm", "yaw_arm",
+"total_accel_arm", "gyros_arm_x", "gyros_arm_y", "gyros_arm_z", "accel_arm_x", "accel_arm_y", "accel_arm_z", "magnet_arm_x", "magnet_arm_y",
+"magnet_arm_z", "roll_dumbbell", "pitch_dumbbell", "yaw_dumbbell", "gyros_dumbbell_x", "gyros_dumbbell_y", "gyros_dumbbell_z", "accel_dumbbell_x", 
+"accel_dumbbell_y", "accel_dumbbell_z", "magnet_dumbbell_x", "magnet_dumbbell_y", "magnet_dumbbell_z", "roll_forearm", "pitch_forearm", 
+"yaw_forearm", "total_accel_forearm", "gyros_forearm_x", "gyros_forearm_y", "gyros_forearm_z", "accel_forearm_x", "accel_forearm_y", 
+"accel_forearm_z","magnet_forearm_x", "magnet_forearm_y", "magnet_forearm_z")
+
+# Reducing covariates
+myTraining <- myTraining[, covariates]
+myTesting <- myTesting[, covariates]
+
+testing <- testing[, covariates[2:length(covariates)]]
+
+```
+
+
+### Removing Zero Covariates
+
+We need to identify covariates that will not help to build our model. Using nearZeroVar function we can identify those variables which have low variabilty.
+
+```{r nzv}
+
+nzv <- nearZeroVar(myTraining, saveMetrics = TRUE)
+
+# Looking covariates with near zero variabilty
+nzv[nzv$nzv == TRUE,]
+```
+
+We can see that all variables have variabity. Using nearZeroVar function we didn't remove any variable.
+
+## Correlation Analysis
+
+We need to identify if the dataset has some correlated variables before procede to build the models.
+
+```{r correlation_analysis}
+
+corMatrix <-cor(myTraining[,-1])
+
+corrplot(corMatrix, order = "FPC", method = "color", type = "lower", 
+         tl.cex = 0.8, tl.col = rgb(0, 0, 0))
+
+```
+
+In the previous plot we can see that there are not much correlations between variables. We can procede to build the models using the variables that we have already.
+
+</div>
+
+## Building Models
+
+### Using Trees
+
+Let's create our first model using trees. Then we'll make a cross validatios to compare results.
+
+```{r model1, cache=TRUE}
+model1 <- train(classe ~ ., method = "rpart", data = myTraining)
+
+fancyRpartPlot(model1$finalModel)
+```
+
+Lookig the previous rpart tree we can see how the builded model predicts classe variable. Let's make a prediction with the model using myTesting.
+
+```{r model1_1, cache=TRUE}
+predict1 <- predict(model1, newdata = myTesting)
+
+confusionMatrix(predict1, myTesting$classe)
+```
+
+### Random Forest
+
+Now let's build a model using the random forest method and let's look the results of the model.
+
+```{r model2, cache=TRUE}
+# Building the model
+model2 <- train(classe ~ ., method = "rf", data = myTraining)
+
+predict2 <- predict(model2, newdata = myTesting)  
+confusionMatrix(predict2, myTesting$classe)
+```
+
+Using random forest we can see that we get a good prediction. The model has 0.98 value of accuracy which is a great value.
+
+### Boosting  
+Now we'll use boosting with trees to get a new model. Let's use gbm which can help us to build our boosted model using trees.
+
+```{r model3, cache=TRUE}
+# Building the model
+model3 <- train(classe ~ ., method = "gbm", data = myTraining, verbose = FALSE)
+
+predict3 <- predict(model3, newdata = myTesting)  
+confusionMatrix(predict3, myTesting$classe)
+```
+
+We can see that the accuracy for gbm method is , which is a great value. 
+
+### Naive Bayes
+Now we'll build a model using naive bayes method. Let's look the result:
+
+```{r model4, cache=TRUE, message=FALSE, warning=FALSE}
+# Building the model
+model4 <- train(classe ~ ., method = "nb", data = myTraining, verbose = FALSE)
+
+predict4 <- predict(model4, newdata = myTesting)  
+confusionMatrix(predict4, myTesting$classe)
+```
+
+We can see that the accuracy for the previous model is 0.74.
+
+## Prediction For Testing Data
+
+Now that we already built different models, we have to decide which model to use. Validating the different results from the different models we can look that random forest give us a great prediction. We'll use that model to predict the classe variable in testing data set.
+
+```{r testing, cache=TRUE}
+
+prediction <- predict(model2, newdata = testing)
+
+prediction
+
+```
+
+We can see the result for our prediction with 99% of accuracy, which is a good prediction for our testing data.

@@ -1,8 +1,10 @@
 ---
-title: "Tooth Growth Analysis"
+title: "Regression Models - Motor Trend Project"
 author: "Yadder Aceituno"
-date: "January 24, 2018"
-output: pdf_document
+date: "March 24, 2019"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -11,97 +13,152 @@ library(ggplot2);
 ```
 
 ## Overview
-In this analysis we will use the "Toot Growth" data, this data set registers the effect of vitamin C on pigs' tooth growth. Over this data we will discover some relations on the data's attributes. To confirm that relations we will use plots and t tests to get some information.   
+This report shows the analysis in mtcars dataset. The objective is to answer the next two questions:
 
-## Loading Data and Summary
+* Is an automatic or manual transmission better for MPG (Miles per gallon)?
+* What is the MPG difference between automatic and manual transmissions?
 
-For this analysis I will use the "Tooth Growth" data. Let's load it and view a summary of the data.
+
+To reach it, first we will examine what kind of information the dataset have. Then, we will create a first model to determine what is the relationship between the MPG and the type of transmission (automatic or manual). Having the model we will determine if we need to create another model using anothers columns from the dataset.
+
+
+## Loading data and taking a first look.
+
+For this analysis I will use the "mtcars" data. Let's load it and view a summary of the data.
 
 
 ```{r loading1}
-data("ToothGrowth");
+data("mtcars");
+#Creating factor variable for am.
+mtcars$am <- factor(mtcars$am, levels = c(0, 1), labels = c("Automatic", "Manual"))
 ```
 
-Now, let's look a summary of the data.
-```{r loading2}
-summary(ToothGrowth);
+The columns that we are interested are "mpg"" and "am". Let's look some rows of these columns. 
+
+
+## Visual Exploratory Analysis
+
+Let's create a boxplot to see how is the relation between the type of transmission and mpg (miles per gallon). With this plot we can analyze how will be the model that will be created. Look Appendix 1.
+
+Taking a look with our plot we can see that there is a difference about 7 miles per gallon between the means from the two different transmissions. Also, we see that the manual transmission is better for mpg.
+
+Let's confirm the difference between the means:
+
+```{r difference}
+mean(mtcars[mtcars$am == "Manual",]$mpg) - mean(mtcars[mtcars$am == "Automatic",]$mpg)
 ```
 
-Now, let's look around the firsts rows of the data.
-```{r loading3}
-head(ToothGrowth);
+
+We can conclude that manual transmission is better than automatic transmission, and the difference is 7.24 miles per gallon. But we won't because we don't know if there is another variable which could explain with a better way the mpg variable. We need to create regression models to check it.
+
+## Simple Regression Analysis
+
+We create our model with:
+
+```{r ra1}
+mdl1 <- lm(mpg~am, data = mtcars);
 ```
 
-You can find more information about the data clicking on this [link](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html)
+The variables mdl1 has the model. Let's take a summary of the model.
 
-## Comparing By Delivery Method
-
-I will create a plot about length by delivery method to easily explore the data.
-
-```{r delivery1}
-ToothGrowth$dose <- as.factor(ToothGrowth$dose);
-
-plot <- ggplot(aes(x=supp, y=len), data = ToothGrowth);
-plot <- plot + geom_boxplot(aes(fill=supp)) + 
-  xlab("Supplement Type") + 
-  ylab("Tooth Length") + 
-  ggtitle("Tooth Length by Supplement Type") +
-  # Removes the legends
-  theme(legend.position="none") +
-  # Labeling supplement type
-  scale_x_discrete(labels=c("Orange Juice (OJ)","Ascorbic Acid (VC)"));
-plot;
+```{r ra2}
+summary(mdl1)$coef;
 ```
 
-With that plot I can see that both samples looks like they are almost the same. So it could be possible that the supplement type (delivery method) doesn't have relation with tooth length .
-Now, in order to discover that assumption, I will use t test to compare the data by supplement(delivery method).
+As we know, our model is defined by the formula $mpg = \beta_0 + \beta_1 am$, where:
 
-```{r delivery2}
-t.test(len~supp, data = ToothGrowth);
+* mpg means miles per gallon.
+* am means automatic or manual transmission   (1 = Manual, 0 = Automatic)
+* $\beta_0$ means the average for mpg when transmission is automatic
+* $\beta_1$ means the increment of mpg compared with $\beta_0$ when transmission is manual. 
+
+Also, we can see that the value of $R^2$ is $0.3598$, which means that the model cover 36% of the variance. As result, we need to create another model including more variables of the data set.
+
+
+## Identifying Variables
+
+To indentify the variables to include in our new model, we need to analyze how much related are all the variables in the dataset with the variable called mpg. To see it, we will use the tool pairs. Look appendix 2
+
+As we could see in the previous plot from appendix 2, the variables with a strongest relation with mpg are:
+
+* cyl: Number of cylinders
+* disp: Engine displacement
+* hp: Horsepower
+* wt: Weight
+
+
+We can confirm it seeing the correlation valueS between the variables from the dataset.
+
+```{r correlation}
+# Correlation values for mpg with another variables from the same dataset.
+round(cor(mtcars[,names(mtcars) != "am"])[1,],2)
 ```
 
-Notice that the p-value (0.06) is greater than 0.05. So we can state that there isn't difference between both data sets (Orange Juice delivery and Ascorbic Acid) related to tooth growth.
 
-## Comparing By Doses
+We could see that the mentioned variables (cyl, disp, hp and wt) have values above 80%. We can even include the variable drat(rear axle ratio) because have better correlation than am(automatic/manual transmision) but we won't because could cause overfitting in our model.
 
-First, let's look how many doses we have in our data set.
-```{r doses1}
-unique(ToothGrowth$dose);
+
+## Multiple Regression Model
+
+Due we already have the variables to use, let's create our model and see the summary from this new one.
+
+```{r multiple_model}
+mdl2 <- lm(mpg ~ am + cyl + disp + hp + wt, data = mtcars)
+
+summary(mdl2)$coef
 ```
 
-Now, I already know that we have 3 different doses I will plot a boxplot by doses.
-```{r doses2}
-plot <- ggplot(aes(x=dose, y=len), data = ToothGrowth);
-plot <- plot + geom_boxplot(aes(fill=dose)) + 
-  xlab("Doses mg/day") + 
-  ylab("Tooth Length") + 
-  ggtitle("Tooth Length by Doses") +
-  # Removes the legends
-  theme(legend.position="none");
-plot;
+
+We can see with this new model that the value of $R^2$ is $0.8551$, which means that the model cover about 86% of the variance. Definitely the new model is better than the first one.
+
+
+## Comparing Models
+
+We can compare our models using ANOVA function.
+
+```{r anova}
+anova(mdl1, mdl2)
 ```
 
-In the graphic we can see that there are differences between the datasets. So, let's do the t test over the two firsts doses (0.5 and 1.0).
-```{r doses3}
-t.test(len~dose, data = subset(ToothGrowth, ToothGrowth$dose %in% c(0.5,1.0)));
+We can see that RSS (Residual Sum of Squares) value for model 2 is better than RSS vsalue for model 1. And we can see that p-value is 4.504 * 10-8. We conclude that the other variables help to explain the model.
+
+Now let's check the normality condition from residuals and some outliers from our model. Look appendix 3.
+
+Checking the "Residuals vs Fitted" plot we see that our residuals are randomly distributed so that our independence condition is correct. 
+
+The "Normal QQ" plot show us the normality of the residuals. That's correct.
+
+We can see the constant variance conditios looking the "Scale Location" plot because they are scattered but they are following a pattern.
+
+
+
+## Conclusions:
+
+
+* Manual transmission is better than automatic transmission for miles per gallon.
+
+* The type of transmission doesn't explain the miles per gallon variable according the dataset.
+
+* Including another variables (cylinders, horse power, engine displacement and weight), manual transmission increase 1.56 miles per gallon than automatic transmission.
+
+
+## Appendix:
+
+### 1. Plot: Miles per gallon by transsmission
+
+```{r boxplot}
+p <- ggplot(mtcars, aes(x = am, y = mpg, fill = am))
+p + geom_boxplot() + labs(title = "Miles per gallon by transmission", x = "Transmission", y = "Miles per gallon")
 ```
-The p-value in this test is  almost 0, that value tell us that those data set (0.5 and 1.0) are different.
 
-Let's look the another ones, in this case applying the t test over the doses 1.0 and 2.0.
-```{r doses4}
-t.test(len~dose, data = subset(ToothGrowth, ToothGrowth$dose %in% c(1.0,2.0)));
+### 2. Plot: Pairs plot
+```{r indetifying}
+pairs(mpg ~ ., data = mtcars)
 ```
-Again as we saw in the last test, the p-value is almost 0. This test also show that both data sets are different.
 
-Now, let's test the last data sets, we can deduce that we will have the same result.
-```{r doses5}
-t.test(len~dose, data = subset(ToothGrowth, ToothGrowth$dose %in% c(0.5,2.0)));
-``` 
-As before, the p-value is almost 0. So, this test also indicates that both data sets are different.
 
-## Conclusion
-Analyzing, and comparing the ToothGrowth data sets we can conclude that:
-
-*   There are not relations between tooth length and the delivery method.
-*   Exist relations between the tooth growth and the dose given to the pigs.
-*   With the plot, we can discover that if we raise the amount of dose, the tooth growth will increase.
+### 3. Plot: Model 2
+```{r model_plot}
+par(mfrow=c(2, 2))
+plot(mdl2)
+```
