@@ -265,7 +265,9 @@ covariates &lt;- c(&quot;classe&quot;, &quot;roll_belt&quot;,&quot;pitch_belt&qu
 
 # Reducing covariates
 myTraining &lt;- myTraining[, covariates]
-myTesting &lt;- myTesting[, covariates]</code></pre>
+myTesting &lt;- myTesting[, covariates]
+
+testing &lt;- testing[, covariates[2:length(covariates)]]</code></pre>
 <h3 id="removing-zero-covariates">Removing Zero Covariates</h3>
 <p>We need to identify covariates that will not help to build our model. Using nearZeroVar function we can identify those variables which have low variabilty.</p>
 <pre class="r"><code>nzv &lt;- nearZeroVar(myTraining, saveMetrics = TRUE)
@@ -457,6 +459,16 @@ confusionMatrix(predict4, myTesting$classe)</code></pre>
 ## Balanced Accuracy      0.8576   0.8050   0.7882   0.7899   0.8842</code></pre>
 <p>We can see that the accuracy for the previous model is 0.74.</p>
 </div>
+</div>
+<div id="prediction-for-testing-data" class="section level2">
+<h2>Prediction For Testing Data</h2>
+<p>Now that we already built different models, we have to decide which model to use. Validating the different results from the different models we can look that random forest give us a great prediction. We’ll use that model to predict the classe variable in testing data set.</p>
+<pre class="r"><code>prediction &lt;- predict(model2, newdata = testing)
+
+prediction</code></pre>
+<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E</code></pre>
+<p>We can see the result for our prediction with 99% of accuracy, which is a good prediction for our testing data.</p>
 </div>
 
 
